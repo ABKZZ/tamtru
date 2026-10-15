@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tra cứu thông tin người thuê</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #1557b0;
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --success: #137333;
+      --danger: #c5221f;
+      --processing: #1a73e8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: white;
+      padding: 1.25rem 1rem;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .header p { font-size: 0.85rem; opacity: 0.9; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    .search-box {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+    .search-row:last-child { margin-bottom: 0; }
+    .search-row input, .search-row select {
+      flex: 1;
+      min-width: 140px;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      background: white;
+    }
+    .search-row input:focus, .search-row select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
+    }
+    .search-row input { flex: 2; min-width: 200px; }
+    .btn {
+      padding: 0.7rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: #e8eaed; color: var(--text); }
+    .btn-secondary:hover { background: #dadce0; }
+    .stats {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .stat {
+      background: var(--card);
+      padding: 0.5rem 0.9rem;
+      border-radius: 20px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .stat strong { color: var(--primary); }
+    .results { display: flex; flex-direction: column; gap: 0.75rem; }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-left: 4px solid var(--primary);
+    }
+    .card.done { border-left-color: var(--success); }
+    .card.processing { border-left-color: var(--processing); }
+    .card.returned { border-left-color: var(--danger); }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .card-title { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+    .card-stt {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 500;
+      background: #f1f3f4;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+    }
+    .card-name { font-size: 1.1rem; font-weight: 600; }
+    .card-address {
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin: 0.15rem 0 0.55rem 0;
+      padding-left: 0.1rem;
+    }
+    .badges { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .badge-done { background: #e6f4ea; color: var(--success); }
+    .badge-processing { background: #e8f0fe; color: var(--processing); }
+    .badge-returned { background: #fce8e6; color: var(--danger); }
+    .badge-tt-xong { background: #e6f4ea; color: var(--success); border: 1px solid #ceead6; }
+    .badge-tt-chua { background: #fef7e0; color: #b06000; border: 1px solid #fde293; }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.4rem 1rem;
+      font-size: 0.9rem;
+    }
+    .field { display: flex; gap: 0.35rem; }
+    .field-label { color: var(--muted); min-width: 95px; flex-shrink: 0; }
+    .field-value { word-break: break-word; }
+    .note {
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.7rem;
+      background: #fef7e0;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #5f4b00;
+    }
+    .members {
+      margin-top: 0.75rem;
+      border-top: 1px dashed var(--border);
+      padding-top: 0.6rem;
+    }
+    .members-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .member-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      padding: 0.4rem 0.6rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 0.35rem;
+      font-size: 0.88rem;
+      align-items: center;
+    }
+    .member-role {
+      font-weight: 600;
+      color: var(--primary);
+      min-width: 70px;
+    }
+    .member-name { font-weight: 500; }
+    .member-meta { color: var(--muted); font-size: 0.82rem; }
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+    footer { text-align: center; padding: 1.5rem; color: var(--muted); font-size: 0.8rem; }
+    @media (max-width: 600px) {
+      .header h1 { font-size: 1.15rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .search-row input { min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔍 Tra cứu thông tin người thuê</h1>
+    <p>Tìm kiếm theo họ tên, CCCD, địa chỉ, chủ nhà... · Nhóm theo hộ</p>
+  </div>
+
+  <div class="container">
+    <div class="search-box">
+      <div class="search-row">
+        <input type="text" id="q" placeholder="Nhập từ khóa (họ tên, CCCD, địa chỉ...)" autocomplete="off">
+        <button class="btn btn-primary" onclick="doSearch()">Tìm kiếm</button>
+        <button class="btn btn-secondary" onclick="resetSearch()">Xóa</button>
+      </div>
+      <div class="search-row">
+        <select id="statusFilter">
+          <option value="">Tất cả trạng thái</option>
+          <option value="Đã hoàn thành">Đã hoàn thành</option>
+          <option value="Chưa hoàn thành">Chưa hoàn thành (Bị trả HS + Đang xử lý)</option>
+          <option value="Đang xử lý">Đang xử lý</option>
+          <option value="Bị trả HS">Bị trả HS</option>
+        </select>
+        <select id="landlordFilter">
+          <option value="">Tất cả chủ nhà</option>
+          <option value="BÙI THÙY HOA TIÊN">BÙI THÙY HOA TIÊN</option>
+          <option value="Bùi Thị Ngọc Dung">Bùi Thị Ngọc Dung</option>
+          <option value="Dương Văn Phi">Dương Văn Phi</option>
+          <option value="Hồ Thị Dung">Hồ Thị Dung</option>
+          <option value="Lê Phú Thạnh">Lê Phú Thạnh</option>
+          <option value="Nguyễn Quốc Hùng">Nguyễn Quốc Hùng</option>
+          <option value="Nguyễn Thị Châu">Nguyễn Thị Châu</option>
+          <option value="Nguyễn Thị Hương Duyên">Nguyễn Thị Hương Duyên</option>
+          <option value="NGUYỄN THỊ NGA">NGUYỄN THỊ NGA</option>
+          <option value="Nguyễn Thị Trâm Anh">Nguyễn Thị Trâm Anh</option>
+          <option value="Nguyễn Văn Đại">Nguyễn Văn Đại</option>
+          <option value="NGÔ THỊ SỸ">NGÔ THỊ SỸ</option>
+          <option value="Ninh Văn Thịnh">Ninh Văn Thịnh</option>
+          <option value="Phùng Thị Tin">Phùng Thị Tin</option>
+          <option value="Phạm Thị Thu Lan">Phạm Thị Thu Lan</option>
+          <option value="Trần Châu Mỹ">Trần Châu Mỹ</option>
+          <option value="Trần Thị Hồng Hà">Trần Thị Hồng Hà</option>
+          <option value="Võ Thị Như Mai">Võ Thị Như Mai</option>
+          <option value="Vũ Thị Thu Thảo">Vũ Thị Thu Thảo</option>
+          <option value="Đào Quỳnh Như">Đào Quỳnh Như</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <footer>
+    Dữ liệu tra cứu nội bộ · Tổng <span id="totalCount">0</span> hộ
+  </footer>
+
+  <script>
+    const DATA = [{"stt": "1", "ho_ten": "ĐỔ PHẠM NHƯ THUẦN", "ngay_sinh": "02/02/1999", "gioi_tinh": "Nam", "cccd": "94099005737", "sdt": "", "email": "", "dia_chi": "51/9 đường Trần Quang Khải", "chu_nha": "Vũ Thị Thu Thảo", "cccd_chu_nha": "079184002080", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "2", "ho_ten": "NGUYỄN THANH HƯNG", "ngay_sinh": "20/03/2007", "gioi_tinh": "Nam", "cccd": "66207011074", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "3", "ho_ten": "NGUYỄN VĂN THANH", "ngay_sinh": "19/03/1996", "gioi_tinh": "Nam", "cccd": "25094003543", "sdt": "", "email": "", "dia_chi": "85 Đường Nguyễn Đình Chiểu", "chu_nha": "Phùng Thị Tin", "cccd_chu_nha": "021397976", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": [{"stt": "4", "ho_ten": "NGUYỄN THỊ THU TRANG", "ngay_sinh": "21/11/1997", "gioi_tinh": "Nữ", "cccd": "8197005798", "vai_tro": "Vợ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong"}, {"stt": "5", "ho_ten": "NGUYỄN BẢO NAM", "ngay_sinh": "26/04/2017", "gioi_tinh": "Nam", "cccd": "25217012287", "vai_tro": "Con", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong"}, {"stt": "6", "ho_ten": "NGUYỄN BẢO KHÁNH", "ngay_sinh": "22/03/2021", "gioi_tinh": "Nam", "cccd": "25221003211", "vai_tro": "Con", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong"}]}, {"stt": "7", "ho_ten": "NGUYỄN ĐỨC CƯỜNG", "ngay_sinh": "18/02/2003", "gioi_tinh": "Nam", "cccd": "46203008896", "sdt": "", "email": "", "dia_chi": "28 Đường Nguyễn Bính", "chu_nha": "Nguyễn Quốc Hùng", "cccd_chu_nha": "042066000144", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "8", "ho_ten": "NGUYỄN HÀ BẮC", "ngay_sinh": "24/10/1994", "gioi_tinh": "Nam", "cccd": "42094004891", "sdt": "0937606146", "email": "", "dia_chi": "177/2 Đường Phan Đình Giót", "chu_nha": "Ninh Văn Thịnh", "cccd_chu_nha": "036088016523", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "9", "ho_ten": "MAI THỊ NHUNG", "ngay_sinh": "28/08/1993", "gioi_tinh": "Nữ", "cccd": "70193004312", "sdt": "", "email": "", "dia_chi": "177/2 Đường Phan Đình Giót", "chu_nha": "Ninh Văn Thịnh", "cccd_chu_nha": "036088016523", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "10", "ho_ten": "NGUYỄN HÀ CHI", "ngay_sinh": "26/05/2021", "gioi_tinh": "Nữ", "cccd": "75321007074", "sdt": "", "email": "", "dia_chi": "177/2 Đường Phan Đình Giót", "chu_nha": "Ninh Văn Thịnh", "cccd_chu_nha": "036088016523", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "11", "ho_ten": "NGUYỄN HÀ MINH", "ngay_sinh": "24/10/2023", "gioi_tinh": "Nam", "cccd": "75223019178", "sdt": "", "email": "", "dia_chi": "177/2 Đường Phan Đình Giót", "chu_nha": "Ninh Văn Thịnh", "cccd_chu_nha": "036088016523", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "12", "ho_ten": "NGÔ HOÀI TRÚC DƯƠNG", "ngay_sinh": "24/03/2015", "gioi_tinh": "Nữ", "cccd": "48315005399", "sdt": "", "email": "", "dia_chi": "51/9 đường Trần Quang Khải", "chu_nha": "Vũ Thị Thu Thảo", "cccd_chu_nha": "079184002080", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "13", "ho_ten": "NGUYỄN THỊ TUYẾT MAI", "ngay_sinh": "30/07/2011", "gioi_tinh": "Nữ", "cccd": "68311007513", "sdt": "", "email": "", "dia_chi": "28 Đường Nguyễn Bính", "chu_nha": "Nguyễn Quốc Hùng", "cccd_chu_nha": "042066000144", "vai_tro": "Chủ Hộ", "trang_thai": "Đang xử lý", "chu_thich": "NGUYỄN VĂN MÃI: 1989 096089003830", "tt": "Xong", "members": []}, {"stt": "14", "ho_ten": "TRƯƠNG THỊ LAN HƯƠNG", "ngay_sinh": "01/01/1966", "gioi_tinh": "Nữ", "cccd": "70166001063", "sdt": "", "email": "", "dia_chi": "88/15 Đường Nguyễn Đình Chiểu", "chu_nha": "Nguyễn Văn Đại", "cccd_chu_nha": "025475925", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "15", "ho_ten": "NGUYỄN THỊ KIM OANH", "ngay_sinh": "06/01/1984", "gioi_tinh": "Nữ", "cccd": "75184013769", "sdt": "", "email": "", "dia_chi": "51/9 đường Trần Quang Khải", "chu_nha": "Vũ Thị Thu Thảo", "cccd_chu_nha": "079184002080", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "16", "ho_ten": "NGUYỄN QUẾ TRÂN", "ngay_sinh": "30/09/2003", "gioi_tinh": "Nữ", "cccd": "75303020709", "sdt": "", "email": "", "dia_chi": "83/7 Đường Hai Bà Trưng", "chu_nha": "Dương Văn Phi", "cccd_chu_nha": "052092004219", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "17", "ho_ten": "NGUYỄN TUẤN KIỆT", "ngay_sinh": "14/12/1979", "gioi_tinh": "Nam", "cccd": "80079014675", "sdt": "", "email": "", "dia_chi": "16/2 Khu Phố Đông B", "chu_nha": "Trần Châu Mỹ", "cccd_chu_nha": "280699817", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "18", "ho_ten": "NGUYỄN THỊ XUÂN MAI", "ngay_sinh": "21/02/1984", "gioi_tinh": "Nữ", "cccd": "87184004451", "sdt": "", "email": "", "dia_chi": "26 Đường Hai Bà Trưng", "chu_nha": "Đào Quỳnh Như", "cccd_chu_nha": "079171005989", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "19", "ho_ten": "HUỲNH DUY MINH", "ngay_sinh": "13/01/2012", "gioi_tinh": "Nam", "cccd": "7212009359", "sdt": "", "email": "", "dia_chi": "17/10 Đường Hai Bà Trưng", "chu_nha": "Nguyễn Thị Châu", "cccd_chu_nha": "074157001501", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "20", "ho_ten": "LÊ VĂN ĐẶNG", "ngay_sinh": "25/04/1990", "gioi_tinh": "Nam", "cccd": "89090014944", "sdt": "", "email": "", "dia_chi": "28 Đường Nguyễn Bính", "chu_nha": "Nguyễn Quốc Hùng", "cccd_chu_nha": "042066000144", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "21", "ho_ten": "NGUYỄN HỮU DUY", "ngay_sinh": "21/02/2006", "gioi_tinh": "Nam", "cccd": "91206006428", "sdt": "", "email": "", "dia_chi": "28 Đường Nguyễn Bính", "chu_nha": "Nguyễn Quốc Hùng", "cccd_chu_nha": "042066000144", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "22", "ho_ten": "ĐỖ THẢO NGUYÊN", "ngay_sinh": "20/10/1998", "gioi_tinh": "Nữ", "cccd": "92198005019", "sdt": "", "email": "", "dia_chi": "51/9 Đường Trần Quang Khải", "chu_nha": "Vũ Thị Thu Thảo", "cccd_chu_nha": "079184002080", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "23", "ho_ten": "NGUYỄN HỒNG NGỌC", "ngay_sinh": "14/11/2000", "gioi_tinh": "Nữ", "cccd": "94300016058", "sdt": "", "email": "", "dia_chi": "51/9 Đường Trần Quang Khải", "chu_nha": "Vũ Thị Thu Thảo", "cccd_chu_nha": "079184002080", "vai_tro": "Chủ Hộ", "trang_thai": "Bị trả HS", "chu_thich": "ĐK nơi ở hiện tại", "tt": "Xong", "members": [{"stt": "24", "ho_ten": "NGUYỄN NGỌC Ý DOANH", "ngay_sinh": "03/04/2026", "gioi_tinh": "Nữ", "cccd": "79326006614", "vai_tro": "Con", "trang_thai": "Bị trả HS", "chu_thich": "ĐK nơi ở hiện tại", "tt": "Xong"}]}, {"stt": "25", "ho_ten": "NGUYỄN THỊ ÚT", "ngay_sinh": "24/06/1982", "gioi_tinh": "Nữ", "cccd": "93182000521", "sdt": "", "email": "", "dia_chi": "88/15 Đường Nguyễn Đình Chiểu", "chu_nha": "Nguyễn Văn Đại", "cccd_chu_nha": "025475925", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": [{"stt": "26", "ho_ten": "TRƯƠNG ÁNH XUÂN", "ngay_sinh": "13/08/2010", "gioi_tinh": "Nữ", "cccd": "79310019600", "vai_tro": "Con", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong"}, {"stt": "27", "ho_ten": "TRƯƠNG QUỲNH ANH", "ngay_sinh": "27/07/2016", "gioi_tinh": "Nữ", "cccd": "79316021111", "vai_tro": "Con", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong"}]}, {"stt": "28", "ho_ten": "PHẠM HIẾU LIÊM", "ngay_sinh": "26/11/1961", "gioi_tinh": "Nam", "cccd": "66061000032", "sdt": "", "email": "", "dia_chi": "17/10 Đường Hai Bà Trưng", "chu_nha": "Nguyễn Thị Châu", "cccd_chu_nha": "074157001501", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "29", "ho_ten": "LÂM BÍCH TUYỀN", "ngay_sinh": "15/05/1982", "gioi_tinh": "Nữ", "cccd": "95182012176", "sdt": "", "email": "", "dia_chi": "17/10 Đường Hai Bà Trưng", "chu_nha": "Nguyễn Thị Châu", "cccd_chu_nha": "074157001501", "vai_tro": "Chủ Hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "30", "ho_ten": "ĐOÀN VĂN NGHIÊM", "ngay_sinh": "04/02/1997", "gioi_tinh": "Nam", "cccd": "089097003929", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "31", "ho_ten": "NGUYỄN THỊ BÍCH VY", "ngay_sinh": "16/09/1999", "gioi_tinh": "Nữ", "cccd": "052199007101", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "32", "ho_ten": "HUỲNH NGUYỄN THÙY TRINH", "ngay_sinh": "16/01/2006", "gioi_tinh": "Nữ", "cccd": "080306009783", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "33", "ho_ten": "PHẠM MINH THƯ", "ngay_sinh": "23/02/2003", "gioi_tinh": "Nữ", "cccd": "080303004058", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "34", "ho_ten": "NGUYỄN THỊ THANH TRÚC", "ngay_sinh": "28/03/2002", "gioi_tinh": "Nữ", "cccd": "074302004350", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "35", "ho_ten": "ĐỖ THỊ PHÚC", "ngay_sinh": "21/08/1993", "gioi_tinh": "Nữ", "cccd": "030193019976", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "36", "ho_ten": "LÊ THỊ TRÀ MY", "ngay_sinh": "30/08/2007", "gioi_tinh": "Nữ", "cccd": "054307002788", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "37", "ho_ten": "HỨA NGỌC HUỲNH ANH", "ngay_sinh": "16/07/2004", "gioi_tinh": "Nữ", "cccd": "091304002899", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "38", "ho_ten": "LÂM NGỌC THUẦN", "ngay_sinh": "01/01/1990", "gioi_tinh": "Nam", "cccd": "095090004677", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "39", "ho_ten": "TRẦN MINH VŨ", "ngay_sinh": "13/02/1987", "gioi_tinh": "Nam", "cccd": "084087006195", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "40", "ho_ten": "NGUYỄN MINH THẮNG", "ngay_sinh": "28/05/1995", "gioi_tinh": "Nam", "cccd": "089095013629", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "41", "ho_ten": "TRẦN MỸ QUYÊN", "ngay_sinh": "27/09/2007", "gioi_tinh": "Nữ", "cccd": "054307005033", "sdt": "", "email": "", "dia_chi": "47/17 đường Nguyễn Công Hoan", "chu_nha": "Nguyễn Thị Hương Duyên", "cccd_chu_nha": "026027118", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "42", "ho_ten": "TRẦN NGỌC ĐẠO", "ngay_sinh": "05/06/1996", "gioi_tinh": "Nam", "cccd": "038096029194", "sdt": "", "email": "", "dia_chi": "148 Nguyễn Hữu Cảnh", "chu_nha": "Võ Thị Như Mai", "cccd_chu_nha": "074181008035", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "43", "ho_ten": "ĐINH THỊ HOÀI PHƯƠNG", "ngay_sinh": "28/12/2003", "gioi_tinh": "Nữ", "cccd": "066303005583", "sdt": "", "email": "", "dia_chi": "148 Nguyễn Hữu Cảnh", "chu_nha": "Võ Thị Như Mai", "cccd_chu_nha": "074181008035", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "44", "ho_ten": "PHẠM NGỌC OÁNH", "ngay_sinh": "14/06/1986", "gioi_tinh": "Nam", "cccd": "001086027021", "sdt": "", "email": "", "dia_chi": "61/43 Đường Nguyễn Công Trứ", "chu_nha": "Phạm Thị Thu Lan", "cccd_chu_nha": "221434813", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "45", "ho_ten": "PHAN THỊ KIM YẾN", "ngay_sinh": "27/10/2007", "gioi_tinh": "Nữ", "cccd": "075307020119", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "46", "ho_ten": "LÊ YẾN NHI", "ngay_sinh": "21/10/2007", "gioi_tinh": "Nữ", "cccd": "075307019071", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "47", "ho_ten": "HUỲNH TẤN PHÁT", "ngay_sinh": "08/09/2008", "gioi_tinh": "Nam", "cccd": "095208001379", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "48", "ho_ten": "NGUYỄN THỊ THÙY LINH", "ngay_sinh": "19/02/2001", "gioi_tinh": "Nữ", "cccd": "089301013997", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "49", "ho_ten": "HOÀNG LÂM ANH", "ngay_sinh": "24/04/2008", "gioi_tinh": "Nam", "cccd": "058208008814", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "50", "ho_ten": "DƯƠNG TRƯỜNG PHÚC", "ngay_sinh": "08/01/2007", "gioi_tinh": "Nam", "cccd": "080207001571", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "51", "ho_ten": "TRẦN MINH HOÀNG", "ngay_sinh": "11/11/1999", "gioi_tinh": "Nam", "cccd": "054099004003", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "52", "ho_ten": "HUỲNH TẤN PHÁT", "ngay_sinh": "08/09/2008", "gioi_tinh": "Nam", "cccd": "095208001379", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "53", "ho_ten": "NGUYỄN TÙNG ANH", "ngay_sinh": "21/10/2001", "gioi_tinh": "Nam", "cccd": "035201000137", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Bị trả HS", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "54", "ho_ten": "NGUYỄN MỸ THƯƠNG", "ngay_sinh": "13/02/2008", "gioi_tinh": "Nữ", "cccd": "051308010660", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "55", "ho_ten": "NGUYỄN KHẢI HOÀN", "ngay_sinh": "21/09/2007", "gioi_tinh": "Nam", "cccd": "049207001076", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "56", "ho_ten": "NGUYỄN LÊ NGỌC ANH", "ngay_sinh": "14/09/2006", "gioi_tinh": "Nữ", "cccd": "075306000834", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": [{"stt": "57", "ho_ten": "NGUYỄN LÊ YÊN THẢO", "ngay_sinh": "03/08/2008", "gioi_tinh": "Nữ", "cccd": "075308022521", "vai_tro": "Thành viên hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong"}]}, {"stt": "58", "ho_ten": "NGUYỄN THỊ BẢO KHIÊM", "ngay_sinh": "03/05/2008", "gioi_tinh": "Nữ", "cccd": "075308021453", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "59", "ho_ten": "PHẠM HUY HOÀNG", "ngay_sinh": "03/08/1997", "gioi_tinh": "Nam", "cccd": "037097000248", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "60", "ho_ten": "TRẦN THỊ QUỲNH NHI", "ngay_sinh": "26/04/2007", "gioi_tinh": "Nữ", "cccd": "079307019664", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "61", "ho_ten": "NGUYỄN ANH KIỆT", "ngay_sinh": "23/06/2001", "gioi_tinh": "Nam", "cccd": "077201002423", "sdt": "", "email": "", "dia_chi": "22/5 Hà Huy Giáp", "chu_nha": "Bùi Thị Ngọc Dung", "cccd_chu_nha": "074197002742", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "62", "ho_ten": "CÙ THỊ ĐIỆP", "ngay_sinh": "29/03/2003", "gioi_tinh": "Nữ", "cccd": "093303001895", "sdt": "", "email": "", "dia_chi": "22/5 Hà Huy Giáp", "chu_nha": "Bùi Thị Ngọc Dung", "cccd_chu_nha": "074197002742", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "63", "ho_ten": "PHAN THỊ THÙY LINH", "ngay_sinh": "18/11/2007", "gioi_tinh": "Nữ", "cccd": "0373307001304", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "64", "ho_ten": "NGUYỄN THANH SANG", "ngay_sinh": "06/06/1991", "gioi_tinh": "Nam", "cccd": "054091006807", "sdt": "", "email": "", "dia_chi": "52/3 Đường Hai Bà Trưng", "chu_nha": "Nguyễn Thị Trâm Anh", "cccd_chu_nha": "022497571", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "65", "ho_ten": "NGUYỄN LÊ HƯNG", "ngay_sinh": "11/11/2007", "gioi_tinh": "Nam", "cccd": "054207002444", "sdt": "", "email": "", "dia_chi": "52/3 Đường Hai Bà Trưng", "chu_nha": "Nguyễn Thị Trâm Anh", "cccd_chu_nha": "022497571", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "66", "ho_ten": "NGUYỄN THỊ MỸ LỆ", "ngay_sinh": "11/10/2002", "gioi_tinh": "Nữ", "cccd": "092302002695", "sdt": "", "email": "", "dia_chi": "52/3 Đường Hai Bà Trưng", "chu_nha": "Nguyễn Thị Trâm Anh", "cccd_chu_nha": "022497571", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "67", "ho_ten": "LÊ ANH THƯ", "ngay_sinh": "31/08/2007", "gioi_tinh": "Nam", "cccd": "096307012094", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "68", "ho_ten": "NGUYỄN HUỲNH MỸ NGỌC", "ngay_sinh": "13/02/2005", "gioi_tinh": "Nam", "cccd": "089305004572", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "69", "ho_ten": "ĐẶNG QUỐC NGỮ", "ngay_sinh": "02/04/1997", "gioi_tinh": "Nam", "cccd": "054097000113", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "70", "ho_ten": "H LẠNH ÊÑUÔL", "ngay_sinh": "10/05/2003", "gioi_tinh": "Nữ", "cccd": "066303009826", "sdt": "", "email": "", "dia_chi": "77 Đường Nguyễn Bính", "chu_nha": "Hồ Thị Dung", "cccd_chu_nha": "020169201", "vai_tro": "Chủ hộ", "trang_thai": "Bị trả HS", "chu_thich": "ký tự đặc biệt chưa nhập vneid đc", "tt": "Xong", "members": [{"stt": "71", "ho_ten": "Y YUI BYĂ", "ngay_sinh": "09/10/2003", "gioi_tinh": "Nam", "cccd": "066203001871", "vai_tro": "Thành viên hộ", "trang_thai": "Bị trả HS", "chu_thich": "ký tự đặc biệt chưa nhập vneid đc", "tt": "Xong"}, {"stt": "72", "ho_ten": "LƯƠNG VĂN PHIẾU EM", "ngay_sinh": "27/05/2006", "gioi_tinh": "Nam", "cccd": "095206007644", "vai_tro": "Thành viên hộ", "trang_thai": "Bị trả HS", "chu_thich": "ký tự đặc biệt chưa nhập vneid đc", "tt": "Xong"}]}, {"stt": "73", "ho_ten": "NGUYỄN VIỆT THÀNH", "ngay_sinh": "23/06/1986", "gioi_tinh": "Nam", "cccd": "025086017350", "sdt": "", "email": "", "dia_chi": "77 Đường Nguyễn Bính", "chu_nha": "NGUYỄN THỊ NGA", "cccd_chu_nha": "020169201", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Xong", "members": [{"stt": "74", "ho_ten": "NGUYỄN THỊ HỒNG", "ngay_sinh": "22/05/1991", "gioi_tinh": "Nữ", "cccd": "008191004784", "vai_tro": "Thành viên hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Xong"}, {"stt": "75", "ho_ten": "NGUYỄN THỊ HUYỀN ANH", "ngay_sinh": "14/12/2014", "gioi_tinh": "Nữ", "cccd": "025314008203", "vai_tro": "Thành viên hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Xong"}, {"stt": "76", "ho_ten": "NGUYỄN HẢI NAM", "ngay_sinh": "18/05/2012", "gioi_tinh": "Nam", "cccd": "025212007831", "vai_tro": "Thành viên hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Xong"}]}, {"stt": "77", "ho_ten": "NGUYỄN THỊ DIỄM HƯƠNG", "ngay_sinh": "01/01/2000", "gioi_tinh": "Nữ", "cccd": "087300014576", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "78", "ho_ten": "NGUYỄN TRẦN THANH TUẤN", "ngay_sinh": "07/05/2003", "gioi_tinh": "Nam", "cccd": "087203012413", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "79", "ho_ten": "DƯƠNG HOÀNG TẤN KHANG", "ngay_sinh": "03/02/2007", "gioi_tinh": "Nam", "cccd": "060207004518", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "80", "ho_ten": "NGUYỄN THÀNH LONG", "ngay_sinh": "10/03/2007", "gioi_tinh": "Nam", "cccd": "074207000364", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "81", "ho_ten": "LÊ ĐŨ ĐIỀU", "ngay_sinh": "17/08/2005", "gioi_tinh": "Nam", "cccd": "096205006546", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "82", "ho_ten": "NGUYỄN TRỌNG LÂM", "ngay_sinh": "10/01/2007", "gioi_tinh": "Nam", "cccd": "074207000053", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "83", "ho_ten": "PHAN MINH HIỀN", "ngay_sinh": "05/06/1989", "gioi_tinh": "Nam", "cccd": "086089001336", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "84", "ho_ten": "NGUYỄN THANH THẠCH", "ngay_sinh": "15/10/2001", "gioi_tinh": "Nam", "cccd": "042201011903", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "85", "ho_ten": "NGUYỄN NHẬT TIẾN", "ngay_sinh": "23/11/2008", "gioi_tinh": "Nam", "cccd": "084208007454", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "86", "ho_ten": "PHẠM THỊ MỸ DUYÊN", "ngay_sinh": "06/05/2000", "gioi_tinh": "Nam", "cccd": "074300001620", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Bị trả HS", "chu_thich": "đang thường trú > Đk nơi ở hiện tại", "tt": "Xong", "members": [{"stt": "87", "ho_ten": "NGUYỄN PHẠM HOÀI ANH", "ngay_sinh": "20/01/2021", "gioi_tinh": "Nam", "cccd": "093221000266", "vai_tro": "Thành viên hộ", "trang_thai": "Bị trả HS", "chu_thich": "", "tt": "Xong"}]}, {"stt": "88", "ho_ten": "NGUYỄN THỊ NHƯ LÀI", "ngay_sinh": "04/11/1989", "gioi_tinh": "Nữ", "cccd": "049189008745", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Bị trả HS", "chu_thich": "ch 36 đường d14 tân thắng, tđh", "tt": "Xong", "members": [{"stt": "89", "ho_ten": "PHAN NGUYỄN YẾN NHI", "ngay_sinh": "02/02/2012", "gioi_tinh": "Nữ", "cccd": "049312012726", "vai_tro": "Thành viên hộ", "trang_thai": "Bị trả HS", "chu_thich": "", "tt": "Xong"}]}, {"stt": "90", "ho_ten": "LÊ THỊ TRÂM", "ngay_sinh": "", "gioi_tinh": "Nữ", "cccd": "072303003428", "sdt": "", "email": "", "dia_chi": "52/26 Đường Hai Bà Trưng", "chu_nha": "NGÔ THỊ SỸ", "cccd_chu_nha": "225084608", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "91", "ho_ten": "VÕ VĂN NAM", "ngay_sinh": "22/03/2004", "gioi_tinh": "Nam", "cccd": "066204009683", "sdt": "", "email": "", "dia_chi": "83/7 Đường Hai Bà Trưng", "chu_nha": "Dương Văn Phi", "cccd_chu_nha": "052092004219", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "92", "ho_ten": "NGUYỄN VĂN THỦY", "ngay_sinh": "26/07/1993", "gioi_tinh": "Nam", "cccd": "066093011140", "sdt": "", "email": "", "dia_chi": "83/7 Đường Hai Bà Trưng", "chu_nha": "Dương Văn Phi", "cccd_chu_nha": "052092004219", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "93", "ho_ten": "PHAN THANH HẢI", "ngay_sinh": "19/11/2005", "gioi_tinh": "Nữ", "cccd": "066305013524", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "94", "ho_ten": "NGÔ THỊ THUỲ LINH", "ngay_sinh": "23/11/2005", "gioi_tinh": "Nữ", "cccd": "075305013363", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "95", "ho_ten": "LÊ LÂM TÂM NHƯ", "ngay_sinh": "11/09/2008", "gioi_tinh": "Nữ", "cccd": "079308025344", "sdt": "", "email": "", "dia_chi": "52D/32 Đường Hai Bà Trưng", "chu_nha": "Trần Thị Hồng Hà", "cccd_chu_nha": "023332959", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "96", "ho_ten": "NGUYỄN THỊ KIM NGUYÊN", "ngay_sinh": "21/10/1987", "gioi_tinh": "Nữ", "cccd": "096187015997", "sdt": "", "email": "", "dia_chi": "11/9 Đường Hai Bà Trưng", "chu_nha": "BÙI THÙY HOA TIÊN", "cccd_chu_nha": "280470920", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "97", "ho_ten": "VÕ VĂN TÌNH", "ngay_sinh": "05/05/1989", "gioi_tinh": "Nam", "cccd": "096089015520", "sdt": "", "email": "", "dia_chi": "6/14 Đường Nguyễn Hữu Cảnh", "chu_nha": "Lê Phú Thạnh", "cccd_chu_nha": "280120149", "vai_tro": "Chủ hộ", "trang_thai": "Bị trả HS", "chu_thich": "CH 18 đ6, kp15, linh xuân", "tt": "Xong", "members": []}, {"stt": "98", "ho_ten": "PHẠM CÔNG HẬU", "ngay_sinh": "24/10/2007", "gioi_tinh": "Nam", "cccd": "087207011316", "sdt": "", "email": "", "dia_chi": "6/14 Đường Nguyễn Hữu Cảnh", "chu_nha": "Lê Phú Thạnh", "cccd_chu_nha": "280120149", "vai_tro": "Chủ hộ", "trang_thai": "Bị trả HS", "chu_thich": "đang đc xử lý hs... tại CAX Hòa Long, Đồng THáp", "tt": "Xong", "members": []}, {"stt": "99", "ho_ten": "LÊ VĂN TUẤN", "ngay_sinh": "13/11/1986", "gioi_tinh": "Nam", "cccd": "093086001711", "sdt": "", "email": "", "dia_chi": "6/14 Đường Nguyễn Hữu Cảnh", "chu_nha": "Lê Phú Thạnh", "cccd_chu_nha": "280120149", "vai_tro": "Chủ hộ", "trang_thai": "Đã hoàn thành", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "100", "ho_ten": "NGUYỄN THỊ KIM PHƯỢNG", "ngay_sinh": "17/06/1990", "gioi_tinh": "Nữ", "cccd": "075190014466", "sdt": "", "email": "", "dia_chi": "6/14 Đường Nguyễn Hữu Cảnh", "chu_nha": "Lê Phú Thạnh", "cccd_chu_nha": "280120149", "vai_tro": "Chủ hộ", "trang_thai": "Bị trả HS", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "101", "ho_ten": "LƯU THÁI LONG", "ngay_sinh": "18/08/1989", "gioi_tinh": "Nam", "cccd": "056089012240", "sdt": "", "email": "", "dia_chi": "77 Đường Nguyễn Bính", "chu_nha": "Hồ Thị Dung", "cccd_chu_nha": "020169201", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "102", "ho_ten": "NGÔ THỊ NGỌC TRÂM", "ngay_sinh": "09/05/1997", "gioi_tinh": "Nữ", "cccd": "080197007375", "sdt": "", "email": "", "dia_chi": "77 Đường Nguyễn Bính", "chu_nha": "Hồ Thị Dung", "cccd_chu_nha": "020169201", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Xong", "members": []}, {"stt": "103", "ho_ten": "ĐOÀN THỊ ÁNH NGỌC", "ngay_sinh": "29/01/1993", "gioi_tinh": "Nữ", "cccd": "075193014134", "sdt": "", "email": "", "dia_chi": "22/5 Hà Huy Giáp", "chu_nha": "Bùi Thị Ngọc Dung", "cccd_chu_nha": "074197002742", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Chưa", "members": []}, {"stt": "104", "ho_ten": "ĐẶNG XUÂN THÙY", "ngay_sinh": "27/05/2001", "gioi_tinh": "Nữ", "cccd": "074301005858", "sdt": "", "email": "", "dia_chi": "22/5 Hà Huy Giáp", "chu_nha": "Bùi Thị Ngọc Dung", "cccd_chu_nha": "074197002742", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Chưa", "members": []}, {"stt": "105", "ho_ten": "TRẦN HOÀNG HUY", "ngay_sinh": "01/01/1996", "gioi_tinh": "Nam", "cccd": "093096002419", "sdt": "", "email": "", "dia_chi": "22/5 Hà Huy Giáp", "chu_nha": "Bùi Thị Ngọc Dung", "cccd_chu_nha": "074197002742", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Chưa", "members": []}, {"stt": "106", "ho_ten": "NGUYỄN NGỌC CẦN", "ngay_sinh": "15/02/1988", "gioi_tinh": "Nam", "cccd": "093088010596", "sdt": "", "email": "", "dia_chi": "22/5 Hà Huy Giáp", "chu_nha": "Bùi Thị Ngọc Dung", "cccd_chu_nha": "074197002742", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Chưa", "members": []}, {"stt": "107", "ho_ten": "NGUYỄN THỊ KIM PHƯƠNG", "ngay_sinh": "17/06/1990", "gioi_tinh": "Nữ", "cccd": "075190014466", "sdt": "", "email": "", "dia_chi": "6/14 Đường Nguyễn Hữu Cảnh", "chu_nha": "Lê Phú Thạnh", "cccd_chu_nha": "280120149", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Chưa", "members": []}, {"stt": "108", "ho_ten": "VÕ NGỌC THÚY HƯỜNG", "ngay_sinh": "08/10/2001", "gioi_tinh": "Nữ", "cccd": "051301010999", "sdt": "", "email": "", "dia_chi": "88/15 Đường Nguyễn Đình Chiểu", "chu_nha": "Nguyễn Văn Đại", "cccd_chu_nha": "025475925", "vai_tro": "Chủ hộ", "trang_thai": "Đang xử lý", "chu_thich": "", "tt": "Chưa", "members": []}];
+
+    document.getElementById('totalCount').textContent = DATA.length;
+
+    function normalize(str) {
+      return (str || '').toString().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'd');
+    }
+
+    function getStatusClass(status) {
+      if (!status) return '';
+      if (status.includes('hoàn thành')) return 'done';
+      if (status.includes('xử lý')) return 'processing';
+      if (status.includes('trả')) return 'returned';
+      return '';
+    }
+
+    function getBadgeClass(status) {
+      if (!status) return '';
+      if (status.includes('hoàn thành')) return 'badge-done';
+      if (status.includes('xử lý')) return 'badge-processing';
+      if (status.includes('trả')) return 'badge-returned';
+      return '';
+    }
+
+    function getTTBadge(tt) {
+      if (!tt) return '';
+      const t = tt.trim().toLowerCase();
+      if (t === 'xong') return '<span class="badge badge-tt-xong">TT: Xong</span>';
+      if (t === 'chưa') return '<span class="badge badge-tt-chua">TT: Chưa</span>';
+      return '<span class="badge">' + escapeHtml(tt) + '</span>';
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderMembers(members) {
+      if (!members || members.length === 0) return '';
+      let html = '<div class="members"><div class="members-title">Thành viên cùng hộ (' + members.length + ')</div>';
+      for (const m of members) {
+        const note = m.chu_thich ? ' · ' + escapeHtml(m.chu_thich) : '';
+        html += `
+          <div class="member-row">
+            <span class="member-role">${escapeHtml(m.vai_tro || 'TV')}</span>
+            <span class="member-name">${escapeHtml(m.ho_ten || '—')}</span>
+            <span class="member-meta">STT ${escapeHtml(m.stt)} · ${escapeHtml(m.ngay_sinh || '')} · ${escapeHtml(m.gioi_tinh || '')} · CCCD: ${escapeHtml(m.cccd || '—')}</span>
+            <span class="badge ${getBadgeClass(m.trang_thai)}">${escapeHtml(m.trang_thai || '')}</span>
+            ${getTTBadge(m.tt)}
+            ${note ? '<span class="member-meta">' + note + '</span>' : ''}
+          </div>`;
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function renderCard(item) {
+      const statusClass = getStatusClass(item.trang_thai);
+      const badgeClass = getBadgeClass(item.trang_thai);
+      const note = item.chu_thich
+        ? '<div class="note">📝 ' + escapeHtml(item.chu_thich) + '</div>'
+        : '';
+      return `
+        <div class="card ${statusClass}">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-stt">STT ${escapeHtml(item.stt)}</span>
+              <span class="card-name">${escapeHtml(item.ho_ten || '—')}</span>
+              <span class="badge" style="background:#e8f0fe;color:#1a73e8">${escapeHtml(item.vai_tro || '')}</span>
+            </div>
+            <div class="badges">
+              <span class="badge ${badgeClass}">${escapeHtml(item.trang_thai || '—')}</span>
+              ${getTTBadge(item.tt)}
+            </div>
+          </div>
+          <div class="card-address">📍 ${escapeHtml(item.dia_chi || '—')}</div>
+          <div class="card-grid">
+            <div class="field"><span class="field-label">Số CCCD:</span><span class="field-value">${escapeHtml(item.cccd || '—')}</span></div>
+            <div class="field"><span class="field-label">Giới tính:</span><span class="field-value">${escapeHtml(item.gioi_tinh || '—')}</span></div>
+            <div class="field"><span class="field-label">Ngày sinh:</span><span class="field-value">${escapeHtml(item.ngay_sinh || '—')}</span></div>
+            <div class="field"><span class="field-label">Chủ nhà:</span><span class="field-value">${escapeHtml(item.chu_nha || '—')}</span></div>
+          </div>
+          ${note}
+          ${renderMembers(item.members)}
+        </div>
+      `;
+    }
+
+    function matchStatus(itemStatus, filter) {
+      if (!filter) return true;
+      if (filter === 'Chưa hoàn thành') {
+        return itemStatus === 'Bị trả HS' || itemStatus === 'Đang xử lý';
+      }
+      return itemStatus === filter;
+    }
+
+    function groupMatchesSearch(item, nq) {
+      if (!nq) return true;
+      const parts = [
+        item.ho_ten, item.cccd, item.dia_chi, item.chu_nha, item.cccd_chu_nha,
+        item.sdt, item.email, item.chu_thich, item.vai_tro, item.stt
+      ];
+      for (const m of (item.members || [])) {
+        parts.push(m.ho_ten, m.cccd, m.vai_tro, m.chu_thich, m.stt);
+      }
+      return normalize(parts.join(' ')).includes(nq);
+    }
+
+    function doSearch() {
+      const q = document.getElementById('q').value.trim();
+      const status = document.getElementById('statusFilter').value;
+      const landlord = document.getElementById('landlordFilter').value;
+      const nq = normalize(q);
+
+      let filtered = DATA.filter(item => {
+        if (landlord && item.chu_nha !== landlord) return false;
+        if (!matchStatus(item.trang_thai, status)) {
+          const memberMatch = (item.members || []).some(m => matchStatus(m.trang_thai, status));
+          if (!memberMatch) return false;
+        }
+        return groupMatchesSearch(item, nq);
+      });
+
+      const done = filtered.filter(i => (i.trang_thai || '').includes('hoàn thành')).length;
+      const processing = filtered.filter(i => (i.trang_thai || '').includes('xử lý')).length;
+      const returned = filtered.filter(i => (i.trang_thai || '').includes('trả')).length;
+
+      document.getElementById('stats').innerHTML = `
+        <div class="stat">Kết quả: <strong>${filtered.length}</strong> hộ</div>
+        <div class="stat">Đã hoàn thành: <strong>${done}</strong></div>
+        <div class="stat">Đang xử lý: <strong>${processing}</strong></div>
+        <div class="stat">Bị trả HS: <strong>${returned}</strong></div>
+      `;
+
+      const resultsEl = document.getElementById('results');
+      if (filtered.length === 0) {
+        resultsEl.innerHTML = '<div class="empty"><div style="font-size:3rem">🔎</div><p>Không tìm thấy kết quả phù hợp</p></div>';
+      } else {
+        resultsEl.innerHTML = filtered.map(item => renderCard(item)).join('');
+      }
+    }
+
+    function resetSearch() {
+      document.getElementById('q').value = '';
+      document.getElementById('statusFilter').value = '';
+      document.getElementById('landlordFilter').value = '';
+      doSearch();
+    }
+
+    document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    document.getElementById('statusFilter').addEventListener('change', doSearch);
+    document.getElementById('landlordFilter').addEventListener('change', doSearch);
+
+    doSearch();
+  </script>
+</body>
+</html>
